@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::fmt;
 use std::ops::{Add, Sub};
+use std::str::FromStr;
 use std::time::Duration;
 
 const MICROS_PER_SEC: f64 = 1_000_000.0;
@@ -77,12 +78,17 @@ impl FfmpegTimeDuration {
   }
 
   #[must_use]
+  #[allow(clippy::should_implement_trait)]
   pub fn from_str(str: &str) -> Option<Self> {
+    str.parse().ok()
+  }
+
+  fn parse_impl(str: &str) -> Option<Self> {
     let str = str.trim();
 
     // Handle negative values
-    let (is_negative, str) = if str.starts_with('-') {
-      (true, &str[1..])
+    let (is_negative, str) = if let Some(stripped) = str.strip_prefix('-') {
+      (true, stripped)
     } else {
       (false, str)
     };
@@ -145,7 +151,15 @@ impl FfmpegTimeDuration {
   #[must_use]
   #[inline]
   pub fn to_alt_string(&self) -> String {
-    format!("{:#}", self)
+    format!("{self:#}")
+  }
+}
+
+impl FromStr for FfmpegTimeDuration {
+  type Err = ();
+
+  fn from_str(str: &str) -> Result<Self, Self::Err> {
+    Self::parse_impl(str).ok_or(())
   }
 }
 
@@ -161,9 +175,9 @@ impl fmt::Display for FfmpegTimeDuration {
       let secs = abs_seconds % 60.0;
 
       if is_negative {
-        write!(f, "-{:02}:{:02}:{:06.3}", hours, minutes, secs)
+        write!(f, "-{hours:02}:{minutes:02}:{secs:06.3}")
       } else {
-        write!(f, "{:02}:{:02}:{:06.3}", hours, minutes, secs)
+        write!(f, "{hours:02}:{minutes:02}:{secs:06.3}")
       }
     } else {
       write!(f, "{}us", self.as_micros())

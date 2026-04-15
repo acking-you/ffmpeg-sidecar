@@ -84,9 +84,8 @@ fn test_frame_count() {
   let fps = 1;
   let duration = 5;
   let expected_frame_count = fps * duration;
-  let arg_string = format!(
-    "-f lavfi -i testsrc=duration={duration}:rate={fps} -f rawvideo -pix_fmt rgb24 -"
-  );
+  let arg_string =
+    format!("-f lavfi -i testsrc=duration={duration}:rate={fps} -f rawvideo -pix_fmt rgb24 -");
 
   let iter = FfmpegCommand::new()
     .args(arg_string.split(' '))
@@ -737,10 +736,7 @@ fn test_no_empty_events() -> anyhow::Result<()> {
     .rawvideo()
     .spawn()?
     .iter()?
-    .filter(|event| match event {
-      FfmpegEvent::Log(_, msg) if msg.is_empty() => true,
-      _ => false,
-    })
+    .filter(|event| matches!(event, FfmpegEvent::Log(_, msg) if msg.is_empty()))
     .count();
 
   assert_eq!(empty_events, 0);

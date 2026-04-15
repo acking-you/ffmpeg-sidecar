@@ -41,9 +41,7 @@ pub fn ffmpeg_manifest_url() -> Result<&'static str> {
 /// URL for the latest published FFmpeg release. The correct URL for the target
 /// platform is baked in at compile time.
 pub fn ffmpeg_download_url() -> Result<&'static str> {
-  if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
-    Ok("https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip")
-  } else if cfg!(all(target_os = "windows", target_arch = "aarch64")) {
+  if cfg!(target_os = "windows") {
     Ok("https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip")
   } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
     Ok("https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz")
@@ -125,7 +123,8 @@ pub fn auto_download_with_progress(
   progress_callback(FfmpegDownloadProgressEvent::Starting);
   let download_url = ffmpeg_download_url()?;
   let destination = sidecar_dir()?;
-  let archive_path = download_ffmpeg_package_with_progress(download_url, &destination, |e| progress_callback(e))?;
+  let archive_path =
+    download_ffmpeg_package_with_progress(download_url, &destination, &progress_callback)?;
   progress_callback(FfmpegDownloadProgressEvent::UnpackingArchive);
   if keep_only_ffmpeg_from_env() {
     unpack_ffmpeg_without_extras(&archive_path, &destination)?;

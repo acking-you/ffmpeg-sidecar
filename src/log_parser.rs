@@ -2,6 +2,7 @@
 
 use std::io::{BufReader, Read};
 
+use crate::ffmpeg_time_duration::FfmpegTimeDuration;
 use crate::{
   comma_iter::CommaIter,
   event::{
@@ -10,7 +11,6 @@ use crate::{
   },
   read_until_any::read_until_any,
 };
-use crate::ffmpeg_time_duration::FfmpegTimeDuration;
 
 #[derive(Debug, Clone, PartialEq)]
 enum LogSection {
@@ -630,7 +630,7 @@ mod tests {
 
   #[test]
   fn test_parse_version() {
-    let cmd = Command::new(ffmpeg_path())
+    let mut cmd = Command::new(ffmpeg_path())
       .create_no_window()
       .arg("-version")
       .stdout(Stdio::piped())
@@ -638,19 +638,22 @@ mod tests {
       .spawn()
       .unwrap();
 
-    let stdout = cmd.stdout.unwrap();
+    let stdout = cmd.stdout.take().unwrap();
     let mut parser = FfmpegLogParser::new(stdout);
+    let mut found = false;
     while let Ok(event) = parser.parse_next_event() {
       if let FfmpegEvent::ParsedVersion(_) = event {
-        return;
+        found = true;
+        break;
       }
     }
-    panic!() // should have found a version
+    let _ = cmd.wait();
+    assert!(found, "should have found a version");
   }
 
   #[test]
   fn test_parse_configuration() {
-    let cmd = Command::new(ffmpeg_path())
+    let mut cmd = Command::new(ffmpeg_path())
       .create_no_window()
       .arg("-version")
       .stdout(Stdio::piped())
@@ -658,14 +661,17 @@ mod tests {
       .spawn()
       .unwrap();
 
-    let stdout = cmd.stdout.unwrap();
+    let stdout = cmd.stdout.take().unwrap();
     let mut parser = FfmpegLogParser::new(stdout);
+    let mut found = false;
     while let Ok(event) = parser.parse_next_event() {
       if let FfmpegEvent::ParsedConfiguration(_) = event {
-        return;
+        found = true;
+        break;
       }
     }
-    panic!() // should have found a configuration
+    let _ = cmd.wait();
+    assert!(found, "should have found a configuration");
   }
 
   /// Test case from https://github.com/nathanbabcock/ffmpeg-sidecar/issues/2#issue-1606661255
